@@ -1,0 +1,758 @@
+<!doctype html>
+<html lang="uk">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Сенсорний простір | Зубрянський ліцей</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Oswald:wght@500;600;700&display=swap" rel="stylesheet" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              brand: {
+                navy: '#06215d',
+                blue: '#0a3f90',
+                sky: '#2d6cc4',
+                yellow: '#fdb813',
+                cream: '#f7f8fc',
+                slate: '#d6deee'
+              }
+            },
+            fontFamily: {
+              display: ['Oswald', 'Arial', 'sans-serif'],
+              sans: ['Manrope', 'Segoe UI', 'sans-serif']
+            },
+            boxShadow: {
+              stage: '0 38px 80px rgba(2, 12, 36, 0.45)',
+              glow: '0 0 0 1px rgba(255,255,255,0.12), 0 18px 38px rgba(8,30,84,0.26)'
+            },
+            keyframes: {
+              drift: {
+                '0%,100%': { transform: 'translateY(0px) translateX(0px)' },
+                '50%': { transform: 'translateY(-16px) translateX(7px)' }
+              },
+              pulseSoft: {
+                '0%,100%': { opacity: '0.6' },
+                '50%': { opacity: '1' }
+              },
+              slideIn: {
+                '0%': { opacity: '0', transform: 'translateY(26px)' },
+                '100%': { opacity: '1', transform: 'translateY(0px)' }
+              }
+            },
+            animation: {
+              drift: 'drift 9s ease-in-out infinite',
+              pulseSoft: 'pulseSoft 4.6s ease-in-out infinite',
+              slideIn: 'slideIn 650ms cubic-bezier(.2,.7,.2,1) both'
+            }
+          }
+        }
+      };
+    </script>
+    <style>
+      :root {
+        --stage-width: 1600;
+        --stage-height: 900;
+      }
+
+      html,
+      body {
+        margin: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+      }
+
+      body {
+        font-family: 'Manrope', 'Segoe UI', sans-serif;
+        background:
+          radial-gradient(circle at 18% 8%, rgba(45, 108, 196, 0.32), transparent 30%),
+          radial-gradient(circle at 86% 0%, rgba(253, 184, 19, 0.22), transparent 34%),
+          radial-gradient(circle at 50% 100%, rgba(10, 63, 144, 0.24), transparent 38%),
+          #030f31;
+      }
+
+      #viewport {
+        width: 100vw;
+        height: 100vh;
+        padding: clamp(8px, 1.3vw, 18px);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        box-sizing: border-box;
+      }
+
+      #stage-sizer {
+        position: relative;
+      }
+
+      #stage {
+        width: calc(var(--stage-width) * 1px);
+        height: calc(var(--stage-height) * 1px);
+        transform-origin: top left;
+      }
+
+      .slide-shell {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+
+      .slide-shell.is-ready {
+        opacity: 1;
+        transform: translateY(0);
+        transition: opacity 420ms ease, transform 520ms cubic-bezier(.2,.7,.2,1);
+      }
+
+      [data-animate] {
+        opacity: 0;
+        transform: translateY(22px) scale(0.985);
+      }
+
+      .slide-shell.is-ready [data-animate] {
+        animation: reveal 680ms cubic-bezier(.2,.7,.2,1) forwards;
+        animation-delay: calc(var(--delay, 0) * 90ms);
+      }
+
+      @keyframes reveal {
+        to {
+          opacity: 1;
+          transform: translateY(0px) scale(1);
+        }
+      }
+
+      .grid-pattern {
+        background-image:
+          linear-gradient(to right, rgba(255, 255, 255, 0.06) 1px, transparent 1px),
+          linear-gradient(to bottom, rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+        background-size: 36px 36px;
+        mask-image: radial-gradient(circle at center, rgba(0, 0, 0, 0.95), rgba(0, 0, 0, 0.1));
+      }
+
+      .zone-dot::after {
+        content: '';
+        position: absolute;
+        width: 14px;
+        height: 14px;
+        border-radius: 999px;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: #fdb813;
+        box-shadow: 0 0 0 10px rgba(253, 184, 19, 0.18);
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation: none !important;
+          transition: none !important;
+          scroll-behavior: auto !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="viewport">
+      <div id="stage-sizer">
+        <section
+          id="stage"
+          class="relative overflow-hidden rounded-[34px] border border-white/25 bg-gradient-to-br from-brand-navy via-[#08296f] to-[#0d4ba8] text-white shadow-stage"
+          aria-live="polite"
+        >
+          <div class="pointer-events-none absolute inset-0">
+            <div class="absolute -top-32 -left-20 h-72 w-72 rounded-full bg-brand-sky/35 blur-3xl animate-drift"></div>
+            <div class="absolute -right-24 -top-16 h-80 w-80 rounded-full bg-brand-yellow/25 blur-3xl animate-drift" style="animation-delay: -3s"></div>
+            <div class="absolute left-[42%] bottom-[-120px] h-96 w-96 rounded-full bg-[#2e7de4]/25 blur-3xl animate-drift" style="animation-delay: -6s"></div>
+            <img src="assets/soft-wave-pattern.svg" alt="" class="absolute inset-0 h-full w-full object-cover opacity-28" />
+            <div class="grid-pattern absolute inset-0 opacity-30"></div>
+          </div>
+
+          <div class="relative flex h-full flex-col px-14 pb-10 pt-8">
+            <header class="flex items-center justify-between gap-10">
+              <div class="flex items-center gap-4">
+                <img
+                  id="headerLogo"
+                  src="assets/zubrianskyi-logo.png"
+                  alt="Логотип Зубрянського ліцею"
+                  class="h-20 w-24 rounded-xl border border-white/20 bg-white/10 object-contain p-1 shadow-glow"
+                  onerror="this.onerror=null;this.src='assets/zubrianskyi-logo.svg';"
+                />
+                <div>
+                  <p class="m-0 text-xs font-semibold uppercase tracking-[0.32em] text-brand-yellow/95">Зубрянський ліцей</p>
+                  <h1 class="m-0 font-display text-[45px] leading-none tracking-wide">Сенсорний простір</h1>
+                </div>
+              </div>
+
+              <div class="min-w-[340px] rounded-2xl border border-white/25 bg-white/10 px-5 py-3 backdrop-blur-md">
+                <p id="globalSubtitle" class="m-0 text-right text-sm font-semibold text-brand-slate/95">Інклюзивне оновлення простору</p>
+              </div>
+            </header>
+
+            <main id="slideContainer" class="relative mt-6 flex-1"></main>
+
+            <footer class="mt-7 rounded-2xl border border-white/20 bg-[#011233]/45 px-5 py-4 backdrop-blur-sm">
+              <div class="flex items-center justify-between gap-4">
+                <div class="flex items-center gap-3">
+                  <button
+                    id="prevBtn"
+                    class="rounded-xl border border-white/25 bg-white/10 px-5 py-2.5 text-sm font-semibold transition hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-45"
+                    type="button"
+                    aria-label="Попередній слайд"
+                  >
+                    ← Назад
+                  </button>
+                  <button
+                    id="nextBtn"
+                    class="rounded-xl bg-brand-yellow px-5 py-2.5 text-sm font-extrabold text-[#06215d] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-45"
+                    type="button"
+                    aria-label="Наступний слайд"
+                  >
+                    Далі →
+                  </button>
+                </div>
+
+                <div class="min-w-[240px] text-right">
+                  <p id="counter" class="m-0 text-sm font-semibold text-brand-slate"></p>
+                </div>
+              </div>
+              <div class="mt-3 h-2 overflow-hidden rounded-full bg-white/20">
+                <div id="progressBar" class="h-full rounded-full bg-gradient-to-r from-brand-yellow to-[#ffd868] transition-all duration-500"></div>
+              </div>
+            </footer>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <script>
+      const STAGE_WIDTH = 1600;
+      const STAGE_HEIGHT = 900;
+
+      const slides = [
+        {
+          id: 'cover',
+          title: 'Сенсорний простір',
+          subtitle: 'Інклюзивне оновлення простору',
+          contentType: 'cover',
+          data: {
+            kicker: 'Зубрянський ліцей | 1946',
+            message:
+              'Презентація концепції сучасного, безпечного та інклюзивного подвір\'я, яке підтримує розвиток кожної дитини.',
+            tags: ['Інклюзивність у кожному рішенні', 'Безпека в пріоритеті', 'Вплив на громаду']
+          }
+        },
+        {
+          id: 'problem',
+          title: 'Чому Це Важливо',
+          subtitle: 'Чому саме зараз',
+          contentType: 'problem',
+          data: {
+            points: [
+              {
+                title: 'Бар\'єри доступу',
+                text: 'Нерівне покриття та вузькі проходи ускладнюють пересування дітей з ООП.'
+              },
+              {
+                title: 'Сенсорне перевантаження',
+                text: 'Відсутність тихих зон та структурованого простору підвищує стрес.'
+              },
+              {
+                title: 'Обмежена взаємодія',
+                text: 'Дітям складно включатися в спільну гру без адаптованих елементів.'
+              },
+              {
+                title: 'Потреба в безпеці',
+                text: 'Недостатня навігація і контрастність підвищують ризики травм.'
+              }
+            ],
+            statement:
+              'Сенсорний простір створює середовище, де навчання, соціалізація та безпека працюють як єдина система.'
+          }
+        },
+        {
+          id: 'standards',
+          title: 'Нормативні Параметри',
+          subtitle: 'Показники доступності',
+          contentType: 'standards',
+          data: {
+            metrics: [
+              { label: 'Ширина доріжок', value: '≥ 1.8 м', note: 'Достатньо для двостороннього руху' },
+              { label: 'Кут пандуса', value: '≤ 8%', note: 'Безпечний підйом для колісних крісел' },
+              { label: 'Поручні', value: '0.7 / 0.9 м', note: 'Два рівні підтримки' },
+              { label: 'Контраст', value: 'Висока видимість', note: 'Жовто-чорне маркування країв' }
+            ],
+            checks: [
+              'Тактильні смуги до входу і небезпечних зон',
+              'Безпечне неслизьке покриття без дрібної щебінки',
+              'Навігація великим шрифтом + дублювання Брайлем'
+            ]
+          }
+        },
+        {
+          id: 'zones',
+          title: 'Функціональні Зони',
+          subtitle: 'Сенсорна екосистема',
+          contentType: 'zones',
+          data: {
+            zones: [
+              { name: 'Тактильний маршрут', desc: 'Направляє до ключових точок і виходів.' },
+              { name: 'Сенсорний сад', desc: 'Різні текстури, запахи, кольори без перенасичення.' },
+              { name: 'Тиха зона', desc: 'Місце для відновлення при сенсорному перевантаженні.' },
+              { name: 'Інклюзивний майданчик', desc: 'Гойдалки з підтримкою тулуба, низькі панелі.' },
+              { name: 'Освітлення', desc: 'Рівномірне світло без різких тіней і сліпих зон.' }
+            ]
+          }
+        },
+        {
+          id: 'safety',
+          title: 'Безпека Та Доступність',
+          subtitle: 'Безпечно і зручно для кожного',
+          contentType: 'safety',
+          data: {
+            list: [
+              'Поручні і місця для відпочинку через рівні інтервали',
+              'Лавки зі спинками та підлокітниками',
+              'Чітке огородження периметра без ризику виходу за межі',
+              'Вільні зони для маневрування колісних крісел',
+              'Інформаційні таблички з контрастним шрифтом'
+            ],
+            highlight:
+              'Це не набір окремих елементів, а цілісна система щоденної підтримки дітей з різними потребами.'
+          }
+        },
+        {
+          id: 'strengths',
+          title: 'Сильні Сторони Проєкту',
+          subtitle: 'Довгострокова цінність',
+          contentType: 'strengths',
+          data: {
+            pillars: [
+              {
+                ua: 'Соціальний ефект',
+                en: 'Соціальний вплив',
+                text: 'Підвищення залученості дітей і підтримка ментального комфорту.'
+              },
+              {
+                ua: 'Цінність для громади',
+                en: 'Цінність для громади',
+                text: 'Ліцей стає орієнтиром сучасної інклюзивної освіти в регіоні.'
+              },
+              {
+                ua: 'Масштабованість',
+                en: 'Масштабованість',
+                text: 'Модель можна адаптувати для інших шкіл та освітніх просторів.'
+              },
+              {
+                ua: 'Репутаційний капітал',
+                en: 'Репутаційний ефект',
+                text: 'Проєкт демонструє відповідальне лідерство і практичний вплив.'
+              }
+            ]
+          }
+        },
+        {
+          id: 'roadmap',
+          title: 'Етапи Реалізації',
+          subtitle: 'Дорожня карта',
+          contentType: 'roadmap',
+          data: {
+            phases: [
+              {
+                name: 'Етап 1: Підготовка',
+                duration: '1-2 міс.',
+                tasks: ['Технічне доопрацювання плану', 'Погодження безпекових рішень', 'Підготовка території']
+              },
+              {
+                name: 'Етап 2: Облаштування',
+                duration: '2-4 міс.',
+                tasks: ['Монтаж покриття і маршрутів', 'Встановлення обладнання', 'Маркування та навігація']
+              },
+              {
+                name: 'Етап 3: Запуск',
+                duration: '1 міс.',
+                tasks: ['Тестування з педагогами', 'Навчання персоналу', 'Відкриття та моніторинг ефекту']
+              }
+            ]
+          }
+        },
+        {
+          id: 'final',
+          title: 'Готові До Наступного Кроку',
+          subtitle: 'Готові діяти',
+          contentType: 'final',
+          data: {
+            summary:
+              'Сенсорний простір у Зубрянському ліцеї поєднує доступність, безпеку та сучасний освітній підхід. Це сильна інвестиція у майбутнє громади.',
+            contacts: [
+              'Зубрянський ліцей',
+              'Адреса: 81135, Львівська обл., Львівський р-н, с. Зубра, вул. Шкільна, буд. 1-А',
+              'Графік роботи: пн-пт 8:00-17:00',
+              'Телефон: 0322275333',
+              'Електронна пошта: —'
+            ]
+          }
+        }
+      ];
+
+      const state = {
+        currentSlide: 0,
+        currentScale: 1
+      };
+
+      const stage = document.getElementById('stage');
+      const stageSizer = document.getElementById('stage-sizer');
+      const viewport = document.getElementById('viewport');
+      const container = document.getElementById('slideContainer');
+      const subtitle = document.getElementById('globalSubtitle');
+      const counter = document.getElementById('counter');
+      const progressBar = document.getElementById('progressBar');
+      const prevBtn = document.getElementById('prevBtn');
+      const nextBtn = document.getElementById('nextBtn');
+
+      function fitStageToViewport() {
+        const availableWidth = viewport.clientWidth;
+        const availableHeight = viewport.clientHeight;
+        const scale = Math.min(availableWidth / STAGE_WIDTH, availableHeight / STAGE_HEIGHT);
+
+        state.currentScale = Math.max(scale, 0.24);
+        stageSizer.style.width = `${Math.round(STAGE_WIDTH * state.currentScale)}px`;
+        stageSizer.style.height = `${Math.round(STAGE_HEIGHT * state.currentScale)}px`;
+        stage.style.transform = `scale(${state.currentScale})`;
+      }
+
+      function renderCover(slide) {
+        return `
+          <div class="slide-shell grid h-full grid-cols-[1.06fr_0.94fr] gap-8">
+            <div class="flex flex-col justify-center gap-5">
+              <p data-animate style="--delay:0" class="m-0 inline-flex w-fit rounded-full border border-brand-yellow/55 bg-brand-yellow/15 px-4 py-2 text-sm font-semibold text-brand-yellow">
+                ${slide.data.kicker}
+              </p>
+              <h2 data-animate style="--delay:1" class="m-0 max-w-[680px] font-display text-[98px] leading-[0.96] tracking-wide">
+                Простір,<br/>де кожна дитина<br/>має маршрут успіху
+              </h2>
+              <p data-animate style="--delay:2" class="m-0 max-w-[670px] text-[27px] leading-relaxed text-brand-slate/95">
+                ${slide.data.message}
+              </p>
+              <div class="mt-2 flex flex-wrap gap-3">
+                ${slide.data.tags
+                  .map(
+                    (tag, index) =>
+                      `<span data-animate style="--delay:${3 + index}" class="rounded-xl border border-white/25 bg-white/10 px-4 py-2 text-sm font-semibold text-white/95">${tag}</span>`
+                  )
+                  .join('')}
+              </div>
+            </div>
+            <div class="relative flex items-center justify-center">
+              <div data-animate style="--delay:2" class="absolute h-[510px] w-[510px] rounded-full bg-brand-yellow/20 blur-3xl"></div>
+              <div data-animate style="--delay:3" class="relative rounded-[36px] border border-white/35 bg-gradient-to-br from-[#f8fbff]/95 via-[#eef4ff]/90 to-[#d8e7ff]/88 p-6 shadow-[0_22px_52px_rgba(8,24,66,0.32)] backdrop-blur-sm">
+                <div class="absolute inset-5 rounded-[28px] bg-[radial-gradient(circle_at_50%_42%,rgba(255,255,255,0.96)_0%,rgba(235,243,255,0.93)_58%,rgba(214,229,251,0.9)_100%)]"></div>
+                <img
+                  src="assets/zubrianskyi-logo.png"
+                  alt="Логотип ліцею"
+                  class="relative h-[470px] w-[470px] object-contain drop-shadow-[0_10px_20px_rgba(8,32,84,0.24)]"
+                  onerror="this.onerror=null;this.src='assets/zubrianskyi-logo.svg';"
+                />
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      function renderProblem(slide) {
+        return `
+          <div class="slide-shell grid h-full grid-rows-[auto_1fr_auto] gap-5">
+            <h2 data-animate style="--delay:0" class="m-0 font-display text-[72px] leading-none tracking-wide">Проблема, яку вирішуємо сьогодні</h2>
+            <div class="grid grid-cols-2 gap-5">
+              ${slide.data.points
+                .map(
+                  (point, index) => `
+                    <article data-animate style="--delay:${index + 1}" class="rounded-2xl border border-white/20 bg-[#061944]/62 p-6 shadow-glow">
+                      <h3 class="m-0 text-[30px] font-extrabold text-brand-yellow">${point.title}</h3>
+                      <p class="mt-3 text-[22px] leading-relaxed text-brand-slate/95">${point.text}</p>
+                    </article>
+                  `
+                )
+                .join('')}
+            </div>
+            <p data-animate style="--delay:5" class="m-0 rounded-2xl border border-brand-yellow/50 bg-brand-yellow/12 px-6 py-4 text-[24px] font-semibold leading-relaxed text-white">
+              ${slide.data.statement}
+            </p>
+          </div>
+        `;
+      }
+
+      function renderStandards(slide) {
+        return `
+          <div class="slide-shell grid h-full grid-rows-[auto_auto_1fr] gap-5">
+            <h2 data-animate style="--delay:0" class="m-0 font-display text-[70px] leading-none tracking-wide">Нормативні параметри доступності</h2>
+            <div class="grid grid-cols-4 gap-4">
+              ${slide.data.metrics
+                .map(
+                  (metric, index) => `
+                    <article data-animate style="--delay:${index + 1}" class="rounded-2xl border border-white/20 bg-white/10 p-4">
+                      <p class="m-0 text-[17px] font-bold uppercase tracking-[0.09em] text-brand-slate">${metric.label}</p>
+                      <p class="mb-0 mt-3 font-display text-[52px] leading-none text-brand-yellow">${metric.value}</p>
+                      <p class="mb-0 mt-2 text-[18px] text-white/90">${metric.note}</p>
+                    </article>
+                  `
+                )
+                .join('')}
+            </div>
+            <div class="grid grid-cols-3 gap-4">
+              ${slide.data.checks
+                .map(
+                  (check, index) => `
+                    <div data-animate style="--delay:${index + 4}" class="rounded-2xl border border-white/20 bg-[#061f57]/80 px-5 py-4 text-[20px] font-semibold leading-relaxed text-brand-slate">
+                      <span class="mr-2 text-brand-yellow">✓</span>${check}
+                    </div>
+                  `
+                )
+                .join('')}
+            </div>
+          </div>
+        `;
+      }
+
+      function renderZones(slide) {
+        return `
+          <div class="slide-shell grid h-full grid-cols-[1.02fr_0.98fr] gap-7">
+            <div class="rounded-3xl border border-white/20 bg-[#041742]/70 p-5">
+              <h2 data-animate style="--delay:0" class="m-0 font-display text-[62px] leading-none tracking-wide">Мапа зон</h2>
+              <div data-animate style="--delay:1" class="relative mt-4 h-[540px] rounded-2xl border border-white/15 bg-[#08245f]/70">
+                <div class="absolute left-[6%] top-[20%] rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-sm font-semibold">Тактильний маршрут</div>
+                <div class="absolute left-[16%] bottom-[18%] rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-sm font-semibold">Сенсорний сад</div>
+                <div class="absolute right-[8%] top-[14%] rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-sm font-semibold">Тиха зона</div>
+                <div class="absolute right-[6%] bottom-[20%] rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-sm font-semibold">Інклюзивний майданчик</div>
+                <div class="absolute left-[40%] top-[45%] rounded-xl border border-brand-yellow/60 bg-brand-yellow/10 px-3 py-2 text-sm font-semibold text-brand-yellow">Центральна безпечна зона</div>
+
+                <div class="zone-dot absolute left-[26%] top-[30%] h-6 w-6"></div>
+                <div class="zone-dot absolute left-[33%] bottom-[30%] h-6 w-6"></div>
+                <div class="zone-dot absolute right-[31%] top-[30%] h-6 w-6"></div>
+                <div class="zone-dot absolute right-[26%] bottom-[31%] h-6 w-6"></div>
+                <div class="zone-dot absolute left-[49%] top-[51%] h-6 w-6"></div>
+
+                <svg class="absolute inset-0 h-full w-full opacity-65" viewBox="0 0 1000 700" preserveAspectRatio="none" aria-hidden="true">
+                  <path d="M270 220 L495 350 L730 220" stroke="rgba(253,184,19,0.7)" stroke-width="4" fill="none" stroke-dasharray="8 9" />
+                  <path d="M330 470 L500 360 L680 470" stroke="rgba(253,184,19,0.7)" stroke-width="4" fill="none" stroke-dasharray="8 9" />
+                </svg>
+              </div>
+            </div>
+            <div class="grid content-start gap-4">
+              <h3 data-animate style="--delay:1" class="m-0 text-[34px] font-extrabold text-brand-yellow">Компоненти сенсорної екосистеми</h3>
+              ${slide.data.zones
+                .map(
+                  (zone, index) => `
+                    <article data-animate style="--delay:${index + 2}" class="rounded-2xl border border-white/20 bg-white/10 px-5 py-4">
+                      <h4 class="m-0 text-[25px] font-bold">${zone.name}</h4>
+                      <p class="mb-0 mt-2 text-[21px] leading-relaxed text-brand-slate/95">${zone.desc}</p>
+                    </article>
+                  `
+                )
+                .join('')}
+            </div>
+          </div>
+        `;
+      }
+
+      function renderSafety(slide) {
+        return `
+          <div class="slide-shell grid h-full grid-rows-[auto_1fr_auto] gap-5">
+            <h2 data-animate style="--delay:0" class="m-0 font-display text-[70px] leading-none tracking-wide">Системна безпека та підтримка</h2>
+            <div class="grid grid-cols-[0.64fr_0.36fr] gap-5">
+              <ul class="m-0 grid list-none gap-4 p-0">
+                ${slide.data.list
+                  .map(
+                    (item, index) => `
+                      <li data-animate style="--delay:${index + 1}" class="rounded-2xl border border-white/20 bg-[#061a49]/72 px-5 py-4 text-[23px] font-semibold leading-relaxed text-brand-slate">
+                        <span class="mr-2 text-brand-yellow">•</span>${item}
+                      </li>
+                    `
+                  )
+                  .join('')}
+              </ul>
+              <div class="rounded-2xl border border-brand-yellow/45 bg-brand-yellow/10 p-5">
+                <p data-animate style="--delay:2" class="m-0 text-xs font-bold uppercase tracking-[0.2em] text-brand-yellow">Принцип проєктування</p>
+                <p data-animate style="--delay:3" class="mb-0 mt-4 text-[26px] font-semibold leading-relaxed text-white">
+                  Універсальний дизайн + сенсорний комфорт + чітка навігація.
+                </p>
+              </div>
+            </div>
+            <p data-animate style="--delay:7" class="m-0 rounded-2xl border border-white/20 bg-white/10 px-5 py-4 text-[23px] leading-relaxed text-brand-slate/95">
+              ${slide.data.highlight}
+            </p>
+          </div>
+        `;
+      }
+
+      function renderStrengths(slide) {
+        return `
+          <div class="slide-shell grid h-full grid-rows-[auto_1fr] gap-5">
+            <h2 data-animate style="--delay:0" class="m-0 font-display text-[72px] leading-none tracking-wide">Сильні сторони, що працюють довгостроково</h2>
+            <div class="grid grid-cols-2 gap-5">
+              ${slide.data.pillars
+                .map(
+                  (pillar, index) => `
+                    <article data-animate style="--delay:${index + 1}" class="rounded-3xl border border-white/20 bg-gradient-to-br from-white/14 to-[#0a2c73]/70 p-6 shadow-glow">
+                      <p class="m-0 text-xs font-bold uppercase tracking-[0.23em] text-brand-yellow">${pillar.en}</p>
+                      <h3 class="mb-0 mt-2 text-[34px] font-extrabold">${pillar.ua}</h3>
+                      <p class="mb-0 mt-3 text-[22px] leading-relaxed text-brand-slate/95">${pillar.text}</p>
+                    </article>
+                  `
+                )
+                .join('')}
+            </div>
+          </div>
+        `;
+      }
+
+      function renderRoadmap(slide) {
+        return `
+          <div class="slide-shell grid h-full grid-rows-[auto_1fr] gap-5">
+            <h2 data-animate style="--delay:0" class="m-0 font-display text-[72px] leading-none tracking-wide">Дорожня карта реалізації</h2>
+            <div class="grid grid-cols-3 gap-5">
+              ${slide.data.phases
+                .map(
+                  (phase, index) => `
+                    <article data-animate style="--delay:${index + 1}" class="relative rounded-2xl border border-white/20 bg-[#061944]/75 p-5">
+                      <div class="absolute right-4 top-4 rounded-lg border border-brand-yellow/55 bg-brand-yellow/14 px-3 py-1 text-sm font-bold text-brand-yellow">${phase.duration}</div>
+                      <h3 class="m-0 max-w-[82%] text-[30px] font-extrabold leading-tight">${phase.name}</h3>
+                      <ul class="mb-0 mt-4 list-disc space-y-2 pl-5 text-[21px] leading-relaxed text-brand-slate/95">
+                        ${phase.tasks.map((task) => `<li>${task}</li>`).join('')}
+                      </ul>
+                    </article>
+                  `
+                )
+                .join('')}
+            </div>
+          </div>
+        `;
+      }
+
+      function renderFinal(slide) {
+        return `
+          <div class="slide-shell grid h-full grid-cols-[1.05fr_0.95fr] gap-6">
+            <div class="flex flex-col justify-center">
+              <p data-animate style="--delay:0" class="m-0 text-xs font-bold uppercase tracking-[0.28em] text-brand-yellow">Готові діяти</p>
+              <h2 data-animate style="--delay:1" class="m-0 mt-3 font-display text-[90px] leading-[0.92] tracking-wide">Сильний крок для ліцею та громади</h2>
+              <p data-animate style="--delay:2" class="mb-0 mt-6 max-w-[720px] text-[28px] leading-relaxed text-brand-slate/95">${slide.data.summary}</p>
+            </div>
+            <div class="grid content-center gap-5">
+              <article data-animate style="--delay:3" class="rounded-3xl border border-white/20 bg-white/10 p-6">
+                <h3 class="m-0 text-[34px] font-bold text-brand-yellow">Контактний блок</h3>
+                <ul class="mb-0 mt-4 list-none space-y-2.5 p-0 text-[19px] leading-snug text-brand-slate/95">
+                  ${slide.data.contacts.map((item) => `<li>${item}</li>`).join('')}
+                </ul>
+              </article>
+              <div data-animate style="--delay:4" class="rounded-2xl border border-brand-yellow/50 bg-brand-yellow/12 p-5 text-[22px] font-semibold leading-relaxed">
+                Дякуємо за увагу. Ліцей готовий до системної трансформації простору для кожної дитини.
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      function renderSlideBody(slide) {
+        switch (slide.contentType) {
+          case 'cover':
+            return renderCover(slide);
+          case 'problem':
+            return renderProblem(slide);
+          case 'standards':
+            return renderStandards(slide);
+          case 'zones':
+            return renderZones(slide);
+          case 'safety':
+            return renderSafety(slide);
+          case 'strengths':
+            return renderStrengths(slide);
+          case 'roadmap':
+            return renderRoadmap(slide);
+          case 'final':
+            return renderFinal(slide);
+          default:
+            return '<div class="slide-shell">Невідомий слайд</div>';
+        }
+      }
+
+      function refreshUi() {
+        const slide = slides[state.currentSlide];
+        subtitle.textContent = slide.subtitle;
+        counter.textContent = `${state.currentSlide + 1} / ${slides.length}`;
+
+        const percent = ((state.currentSlide + 1) / slides.length) * 100;
+        progressBar.style.width = `${percent}%`;
+
+        prevBtn.disabled = state.currentSlide === 0;
+        nextBtn.disabled = state.currentSlide === slides.length - 1;
+      }
+
+      function goToSlide(index) {
+        const next = Math.max(0, Math.min(index, slides.length - 1));
+        if (next === state.currentSlide && container.childElementCount > 0) {
+          return;
+        }
+
+        state.currentSlide = next;
+        const slide = slides[state.currentSlide];
+
+        container.innerHTML = renderSlideBody(slide);
+        const shell = container.querySelector('.slide-shell');
+
+        requestAnimationFrame(() => {
+          shell.classList.add('is-ready');
+        });
+
+        refreshUi();
+      }
+
+      function nextSlide() {
+        goToSlide(state.currentSlide + 1);
+      }
+
+      function prevSlide() {
+        goToSlide(state.currentSlide - 1);
+      }
+
+      prevBtn.addEventListener('click', prevSlide);
+      nextBtn.addEventListener('click', nextSlide);
+
+      viewport.addEventListener('pointerup', (event) => {
+        const target = event.target;
+        if (target instanceof Element && target.closest('button')) {
+          return;
+        }
+
+        const midpoint = window.innerWidth / 2;
+        if (event.clientX < midpoint) {
+          prevSlide();
+          return;
+        }
+
+        nextSlide();
+      });
+
+      window.addEventListener('keydown', (event) => {
+        if (event.key === 'ArrowRight') {
+          event.preventDefault();
+          nextSlide();
+        }
+
+        if (event.key === 'ArrowLeft') {
+          event.preventDefault();
+          prevSlide();
+        }
+      });
+
+      window.addEventListener('resize', fitStageToViewport);
+      window.addEventListener('orientationchange', fitStageToViewport);
+
+      fitStageToViewport();
+      goToSlide(0);
+    </script>
+  </body>
+</html>
